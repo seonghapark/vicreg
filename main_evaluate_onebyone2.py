@@ -301,14 +301,21 @@ if __name__ == "__main__":
     args = get_arguments()
     main = Main(args)
 
+    args.exp_dir.mkdir(parents=True, exist_ok=True)
+    stats_file = open(args.exp_dir / "stats.txt", "a", buffering=1)
+    print(" ".join(sys.argv))
+    print(" ".join(sys.argv), file=stats_file)
+
+
     folders = sorted(os.listdir(args.data_dir))
 
-    limit = 50
+    lower_limit = 50
+    upper_limit = 100
 
     with open('meanrepr.txt', 'w') as f:
         for i in folders:
             for j in folders:
-                if int(i) < limit and int(j) < limit:
+                if int(i) < upper_limit and int(i) > lower_limit and int(j) > lower_limit and int(j) < upper_limit:
                     args.data_dir1 = args.data_dir + i + '/'
                     args.data_dir2 = args.data_dir + j + '/'
 
