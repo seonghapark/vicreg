@@ -50,39 +50,16 @@ def get_arguments():
 
     # Checkpoint
     parser.add_argument("--pretrained", type=Path, help="path to pretrained model")
-    parser.add_argument(
-        "--exp-dir",
-        default="./checkpoint/lincls/",
-        type=Path,
-        metavar="DIR",
-        help="path to checkpoint directory",
-    )
+    parser.add_argument("--exp-dir", default="./checkpoint/lincls/", type=Path,
+                        metavar="DIR", help="path to checkpoint directory")
 
     # Model
     parser.add_argument("--arch", type=str, default="resnet50")
     parser.add_argument("--mlp", default="8192-8192-8192",
                         help='Size and number of layers of the MLP expander head')
 
-    # Optim
-    parser.add_argument(
-        "--epochs",
-        default=100,
-        type=int,
-        metavar="N",
-        help="number of total epochs to run",
-    )
-    parser.add_argument(
-        "--batch-size", default=256, type=int, metavar="N", help="mini-batch size"
-    )
+    parser.add_argument("--batch-size", default=256, type=int, metavar="N", help="mini-batch size")
 
-    # Running
-    parser.add_argument(
-        "--workers",
-        default=8,
-        type=int,
-        metavar="N",
-        help="number of data loader workers",
-    )
 
     return parser.parse_args()
 
@@ -120,7 +97,7 @@ class Main():
             #      'std_loss', (args.std_coeff * std_loss).item(),
             #      'cov_loss', (args.cov_coeff * cov_loss).item())
 
-        return (args.sim_coeff * repr_loss * 100).item()
+        return (args.sim_coeff * repr_loss * 1000).item()
 
 
 class VICReg(nn.Module):
@@ -309,13 +286,14 @@ if __name__ == "__main__":
 
     folders = sorted(os.listdir(args.data_dir))
 
-    lower_limit = 50
-    upper_limit = 100
+    lower_limit = 0
+    upper_limit = 1000
 
+    '''
     outputfile = open('meanrepr.txt', 'a', buffering=1)
     for i in folders:
         for j in folders:
-            if int(i) < upper_limit and int(i) > lower_limit and int(j) > lower_limit and int(j) < upper_limit:
+            if int(i) <= upper_limit and int(i) > lower_limit and int(j) > lower_limit and int(j) <= upper_limit:
                 args.data_dir1 = args.data_dir + i + '/'
                 args.data_dir2 = args.data_dir + j + '/'
 
@@ -325,3 +303,15 @@ if __name__ == "__main__":
 
                 print(json.dumps(l))
                 print(json.dumps(l), file=outputfile)
+    '''
+
+    #### only same folders
+    outputfile = open('meanrepr_same.txt', 'a', buffering=1)
+    for i in folders:
+        args.data_dir1 = args.data_dir2 = args.data_dir + i + '/'
+        values = with_the_folders(args)
+        v = np.asarray(values)
+        l = str(i) + ',' + str(j) + ',' + str(v.mean()) + ',' + str(v.max()) + ',' + str(v.min())
+
+        print(json.dumps(l))
+        print(json.dumps(l), file=outputfile)
