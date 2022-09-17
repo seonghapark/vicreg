@@ -227,7 +227,7 @@ def same_folder(args, files):
             val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8, pin_memory=True)
 
 
-        val = np.asarray(main.run(args, train_loader, val_loader))
+        val = main.run(args, train_loader, val_loader)
         values.append(val)
 
     return values
@@ -254,7 +254,7 @@ def diff_folders(args, f1, f2):
             val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8, pin_memory=True)
 
 
-        val = np.asarray(main.run(args, train_loader, val_loader))
+        val = main.run(args, train_loader, val_loader)
         values.append(val)
 
     return values
