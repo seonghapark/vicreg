@@ -311,7 +311,7 @@ if __name__ == "__main__":
         args.data_dir1 = args.data_dir2 = args.data_dir + i + '/'
         values = with_the_folders(args)
         v = np.asarray(values)
-        l = str(i) + ',' + str(j) + ',' + str(v.mean()) + ',' + str(v.max()) + ',' + str(v.min())
+        l = str(i) + ',' + str(v.mean()) + ',' + str(v.max()) + ',' + str(v.min())
 
         print(json.dumps(l))
         print(json.dumps(l), file=outputfile)
