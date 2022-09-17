@@ -210,6 +210,7 @@ def handle_sigterm(signum, frame):
 
 
 def same_folder(args, files):
+    values = []
     for i in range(len(files)):
         if i != len(files)-1:
             args.data_dir1 = files[i]
@@ -218,7 +219,6 @@ def same_folder(args, files):
             args.data_dir1 = files[i]
             args.data_dir2 = files[i-1]
 
-        values = []
         train_dataset = BasicDataset(args.data_dir1)
         val_dataset = BasicDataset(args.data_dir2)
         train_loader = torch.utils.data.DataLoader(
@@ -241,11 +241,11 @@ def diff_folders(args, f1, f2):
         files1 = f2
         files2 = f1
 
+    values = []
     for i in range(len(files1)):
         args.data_dir1 = files1[i]
         args.data_dir2 = files2[i]
 
-        values = []
         train_dataset = BasicDataset(args.data_dir1)
         val_dataset = BasicDataset(args.data_dir2)
         train_loader = torch.utils.data.DataLoader(
