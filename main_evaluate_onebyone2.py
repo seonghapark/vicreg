@@ -218,6 +218,7 @@ def same_folder(args, files):
             args.data_dir1 = files[i]
             args.data_dir2 = files[i-1]
 
+        values = []
         train_dataset = BasicDataset(args.data_dir1)
         val_dataset = BasicDataset(args.data_dir2)
         train_loader = torch.utils.data.DataLoader(
@@ -226,7 +227,6 @@ def same_folder(args, files):
             val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8, pin_memory=True)
 
 
-        values = []
         val = np.asarray(main.run(args, train_loader, val_loader))
         values.append(val)
 
@@ -245,6 +245,7 @@ def diff_folders(args, f1, f2):
         args.data_dir1 = files1[i]
         args.data_dir2 = files2[i]
 
+        values = []
         train_dataset = BasicDataset(args.data_dir1)
         val_dataset = BasicDataset(args.data_dir2)
         train_loader = torch.utils.data.DataLoader(
@@ -253,7 +254,6 @@ def diff_folders(args, f1, f2):
             val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8, pin_memory=True)
 
 
-        values = []
         val = np.asarray(main.run(args, train_loader, val_loader))
         values.append(val)
 
