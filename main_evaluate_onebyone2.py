@@ -46,11 +46,11 @@ def get_arguments():
                         help='Covariance regularization loss coefficient')
 
     # Data
-    parser.add_argument("--data-dir", type=str, help="path to dataset")
+    parser.add_argument("--data-dir", type=str, required=True, help="path to dataset")
 
     # Checkpoint
-    parser.add_argument("--pretrained", type=Path, help="path to pretrained model")
-    parser.add_argument("--exp-dir", default="./checkpoint/lincls/", type=Path,
+    parser.add_argument("--pretrained", type=Path, required=True, help="path to pretrained model")
+    parser.add_argument("--exp-dir", required=True, type=Path,
                         metavar="DIR", help="path to checkpoint directory")
 
     # Model
@@ -58,7 +58,7 @@ def get_arguments():
     parser.add_argument("--mlp", default="8192-8192-8192",
                         help='Size and number of layers of the MLP expander head')
 
-    parser.add_argument("--batch-size", default=256, type=int, metavar="N", help="mini-batch size")
+    parser.add_argument("--batch-size", default=1, type=int, metavar="N", help="mini-batch size")
 
 
     return parser.parse_args()
@@ -97,7 +97,7 @@ class Main():
             #      'std_loss', (args.std_coeff * std_loss).item(),
             #      'cov_loss', (args.cov_coeff * cov_loss).item())
 
-        return (args.sim_coeff * repr_loss * 1000).item()
+        return (args.sim_coeff * repr_loss * 100).item()
 
 
 class VICReg(nn.Module):
@@ -212,23 +212,26 @@ def handle_sigterm(signum, frame):
 def same_folder(args, files):
     values = []
     for i in range(len(files)):
-        if i != len(files)-1:
-            args.data_dir1 = files[i]
-            args.data_dir2 = files[i+1]
-        else:
-            args.data_dir1 = files[i]
-            args.data_dir2 = files[i-1]
+        for j in range(len(files)):
+            if j >= i:
+                args.data_dir1 = files[i]
+                args.data_dir2 = files[j]
 
-        train_dataset = BasicDataset(args.data_dir1)
-        val_dataset = BasicDataset(args.data_dir2)
-        train_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=8, pin_memory=True)
-        val_loader = torch.utils.data.DataLoader(
-            val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8, pin_memory=True)
+                train_dataset = BasicDataset(args.data_dir1)
+                val_dataset = BasicDataset(args.data_dir2)
+                train_loader = torch.utils.data.DataLoader(
+                    train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=8, pin_memory=True)
+                val_loader = torch.utils.data.DataLoader(
+                    val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8, pin_memory=True)
+
+                val = main.run(args, train_loader, val_loader)
+                values.append(val)
 
 
-        val = main.run(args, train_loader, val_loader)
-        values.append(val)
+                ### only for same folders
+                l = args.data_dir1 + ',' + args.data_dir2 + ',' + str(val)
+                print(json.dumps(l))
+                print(json.dumps(l), file=outputfile)
 
     return values
 
@@ -243,19 +246,25 @@ def diff_folders(args, f1, f2):
 
     values = []
     for i in range(len(files1)):
-        args.data_dir1 = files1[i]
-        args.data_dir2 = files2[i]
+        for j in range(len(files2)):
+            args.data_dir1 = files1[i]
+            args.data_dir2 = files2[j]
 
-        train_dataset = BasicDataset(args.data_dir1)
-        val_dataset = BasicDataset(args.data_dir2)
-        train_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=8, pin_memory=True)
-        val_loader = torch.utils.data.DataLoader(
-            val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8, pin_memory=True)
+            train_dataset = BasicDataset(args.data_dir1)
+            val_dataset = BasicDataset(args.data_dir2)
+            train_loader = torch.utils.data.DataLoader(
+                train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=8, pin_memory=True)
+            val_loader = torch.utils.data.DataLoader(
+                val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8, pin_memory=True)
+
+            val = main.run(args, train_loader, val_loader)
+            values.append(val)
 
 
-        val = main.run(args, train_loader, val_loader)
-        values.append(val)
+            ### only for diff folders
+            l = args.data_dir1 + ',' + args.data_dir2 + ',' + str(val)
+            print(json.dumps(l))
+            print(json.dumps(l), file=outputfile)
 
     return values
 
@@ -287,10 +296,10 @@ if __name__ == "__main__":
     folders = sorted(os.listdir(args.data_dir))
 
     lower_limit = 0
-    upper_limit = 1000
+    upper_limit = 20
 
-    '''
-    outputfile = open('meanrepr.txt', 'a', buffering=1)
+
+    outputfile = open('meanrepr_onebyone.txt', 'a', buffering=1)
     for i in folders:
         for j in folders:
             if int(i) <= upper_limit and int(i) > lower_limit and int(j) > lower_limit and int(j) <= upper_limit:
@@ -298,20 +307,38 @@ if __name__ == "__main__":
                 args.data_dir2 = args.data_dir + j + '/'
 
                 values = with_the_folders(args)
+
+                '''
                 v = np.asarray(values)
                 l = str(i) + ',' + str(j) + ',' + str(v.mean())
 
                 print(json.dumps(l))
                 print(json.dumps(l), file=outputfile)
+                '''
     '''
-
     #### only same folders
     outputfile = open('meanrepr_same.txt', 'a', buffering=1)
     for i in folders:
         args.data_dir1 = args.data_dir2 = args.data_dir + i + '/'
         values = with_the_folders(args)
         v = np.asarray(values)
-        l = str(i) + ',' + str(v.mean()) + ',' + str(v.max()) + ',' + str(v.min())
 
-        print(json.dumps(l))
-        print(json.dumps(l), file=outputfile)
+        #l = str(i) + ',' + str(v.mean()) + ',' + str(v.max()) + ',' + str(v.min())
+        #print(json.dumps(l))
+        #print(json.dumps(l), file=outputfile)
+    '''
+
+    '''
+    #### only diff folders
+    outputfile = open('meanrepr_diff.txt', 'a', buffering=1)
+    for i in folders:
+        for j in folders:
+            if i == j:
+                pass
+            elif int(i) <= upper_limit and int(i) > lower_limit and int(j) > lower_limit and int(j) <= upper_limit:
+                args.data_dir1 = args.data_dir + i + '/'
+                args.data_dir2 = args.data_dir + j + '/'
+
+                values = with_the_folders(args)
+                v = np.asarray(values)
+    '''

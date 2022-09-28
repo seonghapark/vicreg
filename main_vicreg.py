@@ -19,6 +19,7 @@ from torch import nn, optim
 import torch.distributed as dist
 import torchvision.datasets as datasets
 
+from siamdataset import SiameseNetworkDataset
 from image_folder import ImageFolder
 
 import augmentations as aug
@@ -93,8 +94,10 @@ def main(args):
 
     transforms = aug.TrainTransform()
 
-    #dataset = datasets.ImageFolder(args.data_dir / "train", transforms)
-    dataset = ImageFolder(args.data_dir, transforms)
+    #dataset = ImageFolder(args.data_dir, transforms)
+    vicreg_dataset = datasets.ImageFolder(args.data_dir, transforms)
+    dataset = SiameseNetworkDataset(imageFolderDataset=vicreg_dataset,
+                                            transform=transforms)
     sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=True)
     assert args.batch_size % args.world_size == 0
     per_device_batch_size = args.batch_size // args.world_size
@@ -130,7 +133,8 @@ def main(args):
     scaler = torch.cuda.amp.GradScaler()
     for epoch in range(start_epoch, args.epochs):
         sampler.set_epoch(epoch)
-        for step, ((x, y), _) in enumerate(loader, start=epoch * len(loader)):
+        #for step, ((x, y), _) in enumerate(loader, start=epoch * len(loader)):
+        for step, (x, y) in enumerate(loader, start=epoch * len(loader)):
             x = x.cuda(gpu, non_blocking=True)
             y = y.cuda(gpu, non_blocking=True)
 
